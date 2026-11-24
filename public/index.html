@@ -464,7 +464,7 @@
         modalBox.innerHTML = `
           <h3 class="modal-title">Gemini API 키 설정</h3>
           <p class="modal-desc">식물 사진 판정을 위해 Google Gemini API 키가 필요해요. 입력한 키는 내 브라우저(localStorage)에만 저장됩니다.</p>
-          <input type="hidden" id="apiKeyInput" value="SERVER_MANAGED" />
+          <input type="password" class="input-field" id="apiKeyInput" placeholder="AIza..." value="${escapeAttr(currentKey)}" />
           <div class="modal-actions">
             <button type="button" class="btn-ghost" id="cancelApiKeyBtn">취소</button>
             <button type="button" class="btn-primary" id="saveApiKeyBtn">저장하기</button>
@@ -540,21 +540,94 @@
         });
       }
 
-      async function identifyPlantWithGemini(_unusedKey, base64Data, mimeType) {
+      async function identifyPlantWithGemini(apiKey, base64Data, mimeType) {
+        const models = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-4-hydrogen"];
         const loadingText = document.getElementById("loadingText");
-        if (loadingText) loadingText.textContent = "식물 특징을 분석하는 중...";
+        const promptText = [
+          "당신은 식물학 백과사전 전문가입니다. 첨부된 사진 속 식물을 판별하고 아래 JSON 스키마로만 응답하세요.",
+          "- name_ko: 한국어 일반 식물 이름",
+          "- scientific_name: 라틴어 학명",
+          "- english_name: 영어 일반명 또는 검색용 영문명",
+          "- description: 잎, 꽃, 줄기/서식지, 비슷한 식물과의 구별 포인트를 백과사전식으로 알기 쉽게 정리한 한국어 설명"
+        ].join("\n");
 
-        const response = await fetch("/api/identify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ base64Data, mimeType })
+        const payload = JSON.stringify({
+          contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: mimeType, data: base64Data } }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                name_ko: { type: "STRING" },
+                scientific_name: { type: "STRING" },
+                english_name: { type: "STRING" },
+                description: { type: "STRING" }
+              },
+              required: ["name_ko", "scientific_name", "english_name", "description"]
+            }
+          }
         });
 
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || "식물 판정 중 서버 오류가 발생했습니다.");
+        let lastError = null;
+        const delays = [900, 1600, 2600, 4000, 6000];
+
+        for (let round = 0; round < 2; round++) {
+          for (const model of models) {
+            const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + encodeURIComponent(apiKey);
+
+            for (let attempt = 0; attempt <= delays.length; attempt++) {
+              if (loadingText) {
+                loadingText.textContent = attempt === 0 && round === 0
+                  ? ("식물 특징을 살펴보는 중... (" + model + ")")
+                  : ("서버 응답을 다시 요청하는 중... (" + model + ")");
+              }
+
+              try {
+                const response = await fetch(endpoint, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: payload
+                });
+
+                if (response.ok) {
+                  const data = await response.json();
+                  const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                  const cleaned = rawText.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
+                  const parsed = JSON.parse(cleaned);
+                  return {
+                    nameKo: (parsed.name_ko || "이름 미확인 식물").trim(),
+                    scientificName: (parsed.scientific_name || "Species indeterminata").trim(),
+                    englishName: (parsed.english_name || parsed.scientific_name || "plant").trim(),
+                    description: (parsed.description || "상세 특징 정보가 제공되지 않았습니다.").trim()
+                  };
+                }
+
+                const errText = await response.text();
+                lastError = new Error("Gemini API 오류 (" + response.status + " · " + model + "): " + errText.slice(0, 180));
+
+                if (response.status === 503 || response.status === 429 || response.status === 500 || response.status === 502 || response.status === 504) {
+                  const waitTime = delays[Math.min(attempt, delays.length - 1)] + Math.floor(Math.random() * 450);
+                  await new Promise((r) => setTimeout(r, waitTime));
+                  if (attempt >= 2) break;
+                  continue;
+                }
+
+                if (response.status === 404) {
+                  break;
+                }
+
+                throw lastError;
+              } catch (netErr) {
+                lastError = netErr;
+                const waitTime = delays[Math.min(attempt, delays.length - 1)] + 250;
+                await new Promise((r) => setTimeout(r, waitTime));
+                if (attempt >= 2) break;
+              }
+            }
+          }
         }
-        return data;
+
+        throw lastError || new Error("잠시 후 다시 시도해 주세요.");
       }
 
       async function fetchReferencePhotos(scientificName, englishName, koreanName) {
@@ -607,7 +680,10 @@
       async function startIdentification(imagePack) {
         ensureAudioContext();
         const apiKey = getApiKey();
-        // 서버 환경변수(GEMINI_API_KEY) 사용
+        if (!apiKey) {
+          showApiKeyModal((savedKey) => { if (savedKey) startIdentification(imagePack); });
+          return;
+        }
         const overlay = document.getElementById('loadingOverlay');
         const loadingText = document.getElementById('loadingText');
         loadingText.textContent = '낙엽 밟으며 식물을 판정하는 중...';

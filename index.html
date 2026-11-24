@@ -1,13 +1,1012 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>botanical-note</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#234232" />
+  <title>Botanical Note · 잎사귀 노트</title>
+  <style>
+    :root {
+      --bg-ivory: #f6f3ea;
+      --bg-card: #fffdf8;
+      --bg-soft: #ebe6d8;
+      --green-deep: #234232;
+      --green-mid: #3a634b;
+      --green-light: #e3ece5;
+      --text-main: #1f2a24;
+      --text-sub: #5c6b62;
+      --border-soft: #dcd6c6;
+      --danger: #b84238;
+      --danger-bg: #fceae8;
+      --shadow-soft: 0 8px 24px rgba(35, 66, 50, 0.08);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; padding: 0; width: 100%; min-height: 100%;
+      background-color: #e8e2d3; color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif;
+      line-height: 1.5;
+    }
+    .app-shell {
+      max-width: 480px; min-height: 100dvh; margin: 0 auto;
+      background-color: var(--bg-ivory); position: relative;
+      display: flex; flex-direction: column;
+      box-shadow: 0 0 40px rgba(24, 38, 30, 0.12);
+    }
+    .splash-screen {
+      position: fixed; inset: 0; max-width: 480px; margin: 0 auto;
+      background: linear-gradient(170deg, #f8f5ec 0%, #e9efe9 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 900;
+      padding: calc(24px + var(--safe-top)) 24px calc(24px + var(--safe-bottom));
+      transition: opacity 0.35s ease, visibility 0.35s ease;
+    }
+    .splash-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .splash-title { margin: 18px 0 14px; font-size: 26px; font-weight: 700; letter-spacing: 0.4px; color: var(--green-deep); }
+    .splash-spinner {
+      width: 24px; height: 24px;
+      border: 2.5px solid rgba(35, 66, 50, 0.18);
+      border-top-color: var(--green-mid); border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .top-bar {
+      position: sticky; top: 0; z-index: 40;
+      background: rgba(246, 243, 234, 0.94); backdrop-filter: blur(10px);
+      padding: calc(14px + var(--safe-top)) 20px 14px;
+      border-bottom: 1px solid var(--border-soft);
+      display: flex; align-items: center; justify-content: space-between;
+      min-height: calc(56px + var(--safe-top));
+    }
+    .top-title { margin: 0; font-size: 20px; font-weight: 700; color: var(--green-deep); letter-spacing: -0.3px; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .btn-ghost {
+      background: var(--bg-soft); color: var(--green-deep); border: none;
+      border-radius: 10px; padding: 7px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .btn-ghost.danger { background: var(--danger-bg); color: var(--danger); }
+    .main-content {
+      flex: 1; padding: 18px 18px calc(92px + var(--safe-bottom));
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .capture-hero {
+      background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 20px;
+      padding: 20px 16px; box-shadow: var(--shadow-soft);
+      display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px;
+    }
+    .preview-frame {
+      width: 100%; aspect-ratio: 4 / 3; border-radius: 16px;
+      background: var(--bg-soft); border: 1.5px dashed #b9b2a1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      overflow: hidden; position: relative;
+    }
+    .preview-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .preview-placeholder { padding: 18px; color: var(--text-sub); font-size: 14px; }
+    .capture-buttons { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn-primary {
+      background: var(--green-deep); color: #fff; border: none; border-radius: 14px;
+      padding: 14px 12px; font-size: 15px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      box-shadow: 0 4px 12px rgba(35, 66, 50, 0.18);
+    }
+    .btn-secondary {
+      background: var(--green-light); color: var(--green-deep); border: 1px solid #c3d5c7;
+      border-radius: 14px; padding: 14px 12px; font-size: 15px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+    }
+    .info-card {
+      background: var(--bg-card); border: 1px solid var(--border-soft);
+      border-radius: 18px; padding: 16px; box-shadow: var(--shadow-soft);
+    }
+    .info-card h3 { margin: 0 0 6px; font-size: 15px; color: var(--green-deep); }
+    .info-card p { margin: 0; font-size: 13.5px; color: var(--text-sub); }
+    .loading-overlay {
+      position: fixed; inset: 0; max-width: 480px; margin: 0 auto;
+      background: rgba(246, 243, 234, 0.96); backdrop-filter: blur(8px);
+      z-index: 800; display: none; flex-direction: column;
+      align-items: center; justify-content: center; gap: 20px; padding: 24px;
+    }
+    .loading-overlay.active { display: flex; }
+    .leaves-stage { display: flex; align-items: center; justify-content: center; gap: 18px; height: 84px; }
+    .leaf-item { opacity: 0; animation: leafAppearSway 1.5s ease-in-out infinite; }
+    .leaf-item:nth-child(1) { animation-delay: 0s; }
+    .leaf-item:nth-child(2) { animation-delay: 0.25s; }
+    .leaf-item:nth-child(3) { animation-delay: 0.5s; }
+    @keyframes leafAppearSway {
+      0% { opacity: 0; transform: translateY(10px) rotate(-14deg) scale(0.88); }
+      25% { opacity: 1; transform: translateY(0px) rotate(8deg) scale(1); }
+      55% { opacity: 1; transform: translateY(-3px) rotate(-9deg) scale(1.02); }
+      85% { opacity: 0.9; transform: translateY(2px) rotate(6deg) scale(0.98); }
+      100% { opacity: 0; transform: translateY(10px) rotate(-14deg) scale(0.88); }
+    }
+    .loading-text { font-size: 15px; font-weight: 600; color: var(--green-deep); text-align: center; }
+    .result-photo {
+      width: 100%; max-height: 280px; object-fit: cover;
+      border-radius: 16px; border: 1px solid var(--border-soft); display: block;
+    }
+    .meta-strip { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12.5px; color: var(--text-sub); }
+    .meta-badge { background: var(--bg-soft); padding: 5px 10px; border-radius: 999px; color: var(--green-deep); font-weight: 500; }
+    .plant-name-ko { margin: 0; font-size: 22px; font-weight: 700; color: var(--green-deep); }
+    .plant-name-la { margin: 2px 0 10px; font-size: 14px; font-style: italic; color: var(--green-mid); }
+    .plant-desc { margin: 0; font-size: 14.5px; color: var(--text-main); white-space: pre-line; }
+    .ref-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
+    .ref-tile {
+      aspect-ratio: 1 / 1; border-radius: 10px; overflow: hidden;
+      background: var(--bg-soft); border: 1px solid var(--border-soft);
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; font-size: 10.5px; color: var(--text-sub); padding: 4px;
+    }
+    .ref-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .action-row { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; margin-top: 4px; }
+    .delete-bar {
+      background: var(--danger-bg); border: 1px solid #f0c5c0; border-radius: 14px;
+      padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; font-size: 13.5px; color: var(--danger); font-weight: 600;
+    }
+    .btn-danger { background: var(--danger); color: #fff; border: none; border-radius: 10px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .diary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .diary-thumb {
+      aspect-ratio: 1 / 1; border-radius: 10px; overflow: hidden; position: relative;
+      background: var(--bg-soft); border: 1px solid var(--border-soft); cursor: pointer;
+    }
+    .diary-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .diary-check { position: absolute; top: 5px; right: 5px; width: 20px; height: 20px; accent-color: var(--danger); cursor: pointer; }
+    .empty-state {
+      text-align: center; padding: 48px 20px; color: var(--text-sub);
+      background: var(--bg-card); border-radius: 18px; border: 1px solid var(--border-soft);
+    }
+    .comment-list { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+    .comment-item { background: var(--bg-soft); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; }
+    .comment-time { display: block; font-size: 11px; color: var(--text-sub); margin-top: 4px; }
+    .comment-form { display: flex; gap: 8px; }
+    .input-field {
+      width: 100%; padding: 11px 13px; border-radius: 12px;
+      border: 1px solid var(--border-soft); background: #fff; font-size: 14px; color: var(--text-main);
+    }
+    .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0; }
+    .setting-label { font-size: 15px; font-weight: 600; color: var(--text-main); }
+    .setting-sub { font-size: 12.5px; color: var(--text-sub); margin-top: 2px; }
+    .switch { position: relative; display: inline-block; width: 48px; height: 28px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; inset: 0; background-color: #c8c3b6; transition: 0.25s; border-radius: 28px; }
+    .slider:before {
+      position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px;
+      background-color: white; transition: 0.25s; border-radius: 50%; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    .switch input:checked + .slider { background-color: var(--green-mid); }
+    .switch input:checked + .slider:before { transform: translateX(20px); }
+    .copyright-footer { margin-top: auto; padding-top: 20px; text-align: center; font-size: 12px; color: var(--text-sub); }
+    .bottom-tabbar {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px; background: rgba(255, 253, 248, 0.96);
+      backdrop-filter: blur(12px); border-top: 1px solid var(--border-soft);
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      padding: 8px 0 calc(8px + var(--safe-bottom)); z-index: 50;
+    }
+    .tab-btn {
+      background: none; border: none; padding: 6px 4px;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      font-size: 11px; font-weight: 600; color: var(--text-sub); cursor: pointer;
+    }
+    .tab-btn.active { color: var(--green-deep); }
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(20, 32, 25, 0.48);
+      z-index: 950; display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal-box {
+      width: 100%; max-width: 380px; background: var(--bg-card);
+      border-radius: 20px; padding: 22px 20px; box-shadow: 0 14px 36px rgba(0, 0, 0, 0.2);
+    }
+    .modal-title { margin: 0 0 8px; font-size: 18px; font-weight: 700; color: var(--green-deep); }
+    .modal-desc { margin: 0 0 14px; font-size: 13.5px; color: var(--text-sub); }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  </style>
+</head>
+<body>
+  <div class="app-shell" id="app">
+    <section class="splash-screen" id="splashScreen" aria-label="인트로 화면">
+      <svg width="112" height="112" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="나뭇가지 위 딱새 아이콘">
+        <rect x="6" y="6" width="108" height="108" rx="28" fill="#234232" />
+        <circle cx="84" cy="34" r="14" fill="#d9e6dc" opacity="0.22" />
+        <path d="M16 88C40 80 74 75 104 79" stroke="#7c583c" stroke-width="6" stroke-linecap="round" />
+        <path d="M62 79C68 71 75 68 83 68" stroke="#7c583c" stroke-width="4" stroke-linecap="round" />
+        <path d="M81 67C87 58 97 58 100 66C92 71 85 70 81 67Z" fill="#78a87f" />
+        <path d="M40 76L29 85" stroke="#5a3d28" stroke-width="5" stroke-linecap="round" />
+        <ellipse cx="52" cy="61" rx="14" ry="16" transform="rotate(-12 52 61)" fill="#e37b49" />
+        <path d="M42 48C48 43 60 44 64 53C60 58 51 58 45 55Z" fill="#4c6b7c" />
+        <circle cx="58" cy="49" r="2.2" fill="#18221c" />
+        <circle cx="58.7" cy="48.2" r="0.7" fill="#ffffff" />
+        <path d="M65 50L72 52L65 54Z" fill="#e6b44c" />
+        <path d="M44 58C48 63 55 64 59 60" stroke="#c95d2b" stroke-width="1.6" stroke-linecap="round" fill="none" />
+        <path d="M48 76V82M56 75V82" stroke="#473527" stroke-width="2.3" stroke-linecap="round" />
+      </svg>
+      <h1 class="splash-title">Botanical Note</h1>
+      <div class="splash-spinner" aria-label="로딩 중"></div>
+    </section>
+
+    <header class="top-bar" id="topBar">
+      <h2 class="top-title" id="topTitle">찾아보기</h2>
+      <div class="header-actions" id="headerActions"></div>
+    </header>
+
+    <main class="main-content" id="mainContent"></main>
+
+    <nav class="bottom-tabbar" id="bottomTabbar" aria-label="하단 메뉴">
+      <button type="button" class="tab-btn active" data-tab="browse" id="tabBrowse" aria-label="찾아보기">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <span>찾아보기</span>
+      </button>
+      <button type="button" class="tab-btn" data-tab="notebook" id="tabNotebook" aria-label="잎사귀 노트">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+          <line x1="8" y1="7" x2="16" y2="7" />
+          <line x1="8" y1="11" x2="14" y2="11" />
+        </svg>
+        <span>잎사귀 노트</span>
+      </button>
+      <button type="button" class="tab-btn" data-tab="settings" id="tabSettings" aria-label="설정">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+        <span>설정</span>
+      </button>
+    </nav>
+  </div>
+
+  <div class="loading-overlay" id="loadingOverlay" aria-live="polite">
+    <div class="leaves-stage">
+      <svg class="leaf-item" width="54" height="54" viewBox="0 0 60 60" fill="none">
+        <path d="M12 46C12 22 28 10 48 12C46 32 34 48 12 46Z" fill="#4f8259" />
+        <path d="M14 44C26 33 36 23 46 14" stroke="#d8ebd9" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      <svg class="leaf-item" width="58" height="58" viewBox="0 0 64 64" fill="none">
+        <path d="M32 8L37 22L52 19L43 31L54 39L38 41L36 55L32 45L28 55L26 41L10 39L21 31L12 19L27 22L32 8Z" fill="#2f6243" />
+        <line x1="32" y1="18" x2="32" y2="54" stroke="#d8ebd9" stroke-width="1.8" stroke-linecap="round" />
+      </svg>
+      <svg class="leaf-item" width="54" height="54" viewBox="0 0 60 60" fill="none">
+        <path d="M10 48C18 24 34 12 50 10C48 26 36 42 10 48Z" fill="#739e56" />
+        <path d="M12 46C25 34 37 22 48 12" stroke="#eef5e6" stroke-width="1.8" stroke-linecap="round" />
+      </svg>
+    </div>
+    <div class="loading-text" id="loadingText">식물의 잎과 꽃을 살펴보는 중...</div>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true">
+    <div class="modal-box" id="modalBox"></div>
+  </div>
+
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" />
+  <input type="file" id="albumInput" accept="image/*" style="display:none" />
+
+  <script>
+    (() => {
+      const STORAGE_KEYS = {
+        API_KEY: 'botanical_note_gemini_api_key_v1',
+        SETTINGS: 'botanical_note_settings_v1'
+      };
+      const DB_NAME = 'BotanicalNoteDB';
+      const DB_VERSION = 1;
+      const STORE_NAME = 'entries';
+
+      const state = {
+        view: 'browse',
+        previewUrl: '',
+        previewBase64: '',
+        previewMimeType: 'image/jpeg',
+        analysisResult: null,
+        referencePhotos: [],
+        entries: [],
+        selectedEntryId: null,
+        deleteMode: false,
+        selectedIds: new Set(),
+        settings: loadSettings()
+      };
+
+      function loadSettings() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            return {
+              recordDate: parsed.recordDate !== false,
+              recordLocation: parsed.recordLocation !== false
+            };
+          }
+        } catch (_) {}
+        return { recordDate: true, recordLocation: true };
+      }
+
+      function saveSettings(next) {
+        state.settings = { ...next };
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(state.settings));
+      }
+
+      function getApiKey() {
+        return (localStorage.getItem(STORAGE_KEYS.API_KEY) || '').trim();
+      }
+
+      function setApiKey(key) {
+        localStorage.setItem(STORAGE_KEYS.API_KEY, key.trim());
+      }
+
+      function openDB() {
+        return new Promise((resolve, reject) => {
+          const req = indexedDB.open(DB_NAME, DB_VERSION);
+          req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+              const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+              store.createIndex('createdAt', 'createdAt', { unique: false });
+            }
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      async function fetchAllEntries() {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.getAll();
+          req.onsuccess = () => {
+            const list = req.result || [];
+            list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            resolve(list);
+          };
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      async function saveEntryToDB(entry) {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          tx.objectStore(STORE_NAME).put(entry);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      }
+
+      async function deleteEntriesFromDB(ids) {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          ids.forEach((id) => store.delete(id));
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      }
+
+      let audioCtx = null;
+      function ensureAudioContext() {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return null;
+        if (!audioCtx) audioCtx = new Ctx();
+        if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+        return audioCtx;
+      }
+
+      function playLeafRustleSound() {
+        const ctx = ensureAudioContext();
+        if (!ctx) return;
+        try {
+          const duration = 0.85;
+          const sampleRate = ctx.sampleRate;
+          const frameCount = Math.floor(sampleRate * duration);
+          const buffer = ctx.createBuffer(1, frameCount, sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < frameCount; i++) {
+            const t = i / sampleRate;
+            const pulse1 = Math.pow(Math.max(0, Math.sin(t * Math.PI * 7)), 4);
+            const pulse2 = Math.pow(Math.max(0, Math.sin(t * Math.PI * 11 + 0.8)), 5);
+            const fadeOut = 1 - t / duration;
+            const crinkle = (Math.random() * 2 - 1) * (0.25 + 0.75 * Math.random());
+            data[i] = crinkle * (0.25 + 0.75 * Math.max(pulse1, pulse2)) * fadeOut;
+          }
+          const noise = ctx.createBufferSource();
+          noise.buffer = buffer;
+          const bandpass = ctx.createBiquadFilter();
+          bandpass.type = 'bandpass';
+          bandpass.frequency.setValueAtTime(2900, ctx.currentTime);
+          bandpass.Q.setValueAtTime(1.1, ctx.currentTime);
+          const highpass = ctx.createBiquadFilter();
+          highpass.type = 'highpass';
+          highpass.frequency.setValueAtTime(950, ctx.currentTime);
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.001, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.32, ctx.currentTime + 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+          noise.connect(bandpass);
+          bandpass.connect(highpass);
+          highpass.connect(gain);
+          gain.connect(ctx.destination);
+          noise.start();
+          noise.stop(ctx.currentTime + duration);
+        } catch (_) {}
+      }
+
+      const modalBackdrop = document.getElementById('modalBackdrop');
+      const modalBox = document.getElementById('modalBox');
+
+      function closeModal() {
+        modalBackdrop.classList.remove('active');
+        modalBox.innerHTML = '';
+      }
+
+      function showAlertModal(title, message, onConfirm) {
+        modalBox.innerHTML = `
+          <h3 class="modal-title">${escapeHtml(title)}</h3>
+          <p class="modal-desc">${escapeHtml(message)}</p>
+          <div class="modal-actions">
+            <button type="button" class="btn-primary" id="modalConfirmBtn">확인</button>
+          </div>
+        `;
+        modalBackdrop.classList.add('active');
+        document.getElementById('modalConfirmBtn').addEventListener('click', () => {
+          closeModal();
+          if (typeof onConfirm === 'function') onConfirm();
+        });
+      }
+
+      function showApiKeyModal(onSaved) {
+        const currentKey = getApiKey();
+        modalBox.innerHTML = `
+          <h3 class="modal-title">Gemini API 키 설정</h3>
+          <p class="modal-desc">식물 사진 판정을 위해 Google Gemini API 키가 필요해요. 입력한 키는 내 브라우저(localStorage)에만 저장됩니다.</p>
+          <input type="password" class="input-field" id="apiKeyInput" placeholder="AIza..." value="${escapeAttr(currentKey)}" />
+          <div class="modal-actions">
+            <button type="button" class="btn-ghost" id="cancelApiKeyBtn">취소</button>
+            <button type="button" class="btn-primary" id="saveApiKeyBtn">저장하기</button>
+          </div>
+        `;
+        modalBackdrop.classList.add('active');
+        document.getElementById('cancelApiKeyBtn').addEventListener('click', closeModal);
+        document.getElementById('saveApiKeyBtn').addEventListener('click', () => {
+          const val = document.getElementById('apiKeyInput').value.trim();
+          if (!val) {
+            showAlertModal('안내', '올바른 Gemini API 키를 입력해 주세요.');
+            return;
+          }
+          setApiKey(val);
+          closeModal();
+          if (typeof onSaved === 'function') onSaved(val);
+        });
+      }
+
+      function formatNowKorean() {
+        const now = new Date();
+        return now.toLocaleString('ko-KR', {
+          year: 'numeric', month: 'long', day: 'numeric',
+          weekday: 'short', hour: '2-digit', minute: '2-digit'
+        });
+      }
+
+      function getCurrentLocationText() {
+        return new Promise((resolve) => {
+          if (!navigator.geolocation) {
+            resolve('위치 정보 미지원 기기');
+            return;
+          }
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve(`위도 ${pos.coords.latitude.toFixed(4)}, 경도 ${pos.coords.longitude.toFixed(4)}`),
+            () => resolve('위치 권한 꺼짐 또는 확인 불가'),
+            { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 }
+          );
+        });
+      }
+
+      function readImageFile(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+              const maxSide = 768;
+              let { width, height } = img;
+              if (width > maxSide || height > maxSide) {
+                if (width > height) {
+                  height = Math.round((height * maxSide) / width);
+                  width = maxSide;
+                } else {
+                  width = Math.round((width * maxSide) / height);
+                  height = maxSide;
+                }
+              }
+              const canvas = document.createElement('canvas');
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, width, height);
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+              const base64 = dataUrl.split(',')[1] || '';
+              resolve({ dataUrl, base64, mimeType: 'image/jpeg' });
+            };
+            img.onerror = reject;
+            img.src = reader.result;
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      async function identifyPlantWithGemini(apiKey, base64Data, mimeType) {
+        const models = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-4-hydrogen"];
+        const loadingText = document.getElementById("loadingText");
+        const promptText = [
+          "당신은 식물학 백과사전 전문가입니다. 첨부된 사진 속 식물을 판별하고 아래 JSON 스키마로만 응답하세요.",
+          "- name_ko: 한국어 일반 식물 이름",
+          "- scientific_name: 라틴어 학명",
+          "- english_name: 영어 일반명 또는 검색용 영문명",
+          "- description: 잎, 꽃, 줄기/서식지, 비슷한 식물과의 구별 포인트를 백과사전식으로 알기 쉽게 정리한 한국어 설명"
+        ].join("\n");
+
+        const payload = JSON.stringify({
+          contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: mimeType, data: base64Data } }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                name_ko: { type: "STRING" },
+                scientific_name: { type: "STRING" },
+                english_name: { type: "STRING" },
+                description: { type: "STRING" }
+              },
+              required: ["name_ko", "scientific_name", "english_name", "description"]
+            }
+          }
+        });
+
+        let lastError = null;
+        const delays = [900, 1600, 2600, 4000, 6000];
+
+        for (let round = 0; round < 2; round++) {
+          for (const model of models) {
+            const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + encodeURIComponent(apiKey);
+
+            for (let attempt = 0; attempt <= delays.length; attempt++) {
+              if (loadingText) {
+                loadingText.textContent = attempt === 0 && round === 0
+                  ? ("식물 특징을 살펴보는 중... (" + model + ")")
+                  : ("서버 응답을 다시 요청하는 중... (" + model + ")");
+              }
+
+              try {
+                const response = await fetch(endpoint, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: payload
+                });
+
+                if (response.ok) {
+                  const data = await response.json();
+                  const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                  const cleaned = rawText.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
+                  const parsed = JSON.parse(cleaned);
+                  return {
+                    nameKo: (parsed.name_ko || "이름 미확인 식물").trim(),
+                    scientificName: (parsed.scientific_name || "Species indeterminata").trim(),
+                    englishName: (parsed.english_name || parsed.scientific_name || "plant").trim(),
+                    description: (parsed.description || "상세 특징 정보가 제공되지 않았습니다.").trim()
+                  };
+                }
+
+                const errText = await response.text();
+                lastError = new Error("Gemini API 오류 (" + response.status + " · " + model + "): " + errText.slice(0, 180));
+
+                if (response.status === 503 || response.status === 429 || response.status === 500 || response.status === 502 || response.status === 504) {
+                  const waitTime = delays[Math.min(attempt, delays.length - 1)] + Math.floor(Math.random() * 450);
+                  await new Promise((r) => setTimeout(r, waitTime));
+                  if (attempt >= 2) break;
+                  continue;
+                }
+
+                if (response.status === 404) {
+                  break;
+                }
+
+                throw lastError;
+              } catch (netErr) {
+                lastError = netErr;
+                const waitTime = delays[Math.min(attempt, delays.length - 1)] + 250;
+                await new Promise((r) => setTimeout(r, waitTime));
+                if (attempt >= 2) break;
+              }
+            }
+          }
+        }
+
+        throw lastError || new Error("잠시 후 다시 시도해 주세요.");
+      }
+
+      async function fetchReferencePhotos(scientificName, englishName, koreanName) {
+        const queries = [scientificName, englishName, koreanName].filter(Boolean);
+        const collected = [];
+        const seenUrls = new Set();
+
+        for (const q of queries) {
+          if (collected.length >= 4) break;
+          try {
+            const url = `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=12&gsrsearch=${encodeURIComponent(q + ' filetype:bitmap')}&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=400`;
+            const res = await fetch(url);
+            if (!res.ok) continue;
+            const json = await res.json();
+            const pages = json?.query?.pages ? Object.values(json.query.pages) : [];
+            for (const page of pages) {
+              if (collected.length >= 4) break;
+              const info = page?.imageinfo?.[0];
+              const thumbUrl = info?.thumburl || info?.url;
+              if (!thumbUrl) continue;
+              const lower = thumbUrl.toLowerCase();
+              if (lower.endsWith('.svg') || lower.endsWith('.tif') || lower.endsWith('.tiff')) continue;
+              if (seenUrls.has(thumbUrl)) continue;
+              seenUrls.add(thumbUrl);
+              collected.push({ src: thumbUrl, title: (page.title || '').replace(/^File:/i, '') });
+            }
+          } catch (_) {}
+        }
+
+        if (collected.length < 4 && (scientificName || englishName)) {
+          try {
+            const wikiTitle = encodeURIComponent((scientificName || englishName).trim().replace(/\s+/g, '_'));
+            const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${wikiTitle}`);
+            if (wikiRes.ok) {
+              const wikiJson = await wikiRes.json();
+              const thumb = wikiJson?.thumbnail?.source || wikiJson?.originalimage?.source;
+              if (thumb && !seenUrls.has(thumb)) {
+                seenUrls.add(thumb);
+                collected.push({ src: thumb, title: wikiJson.title || scientificName });
+              }
+            }
+          } catch (_) {}
+        }
+
+        const slots = [];
+        for (let i = 0; i < 4; i++) slots.push(collected[i] || null);
+        return slots;
+      }
+
+      async function startIdentification(imagePack) {
+        ensureAudioContext();
+        const apiKey = getApiKey();
+        if (!apiKey) {
+          showApiKeyModal((savedKey) => { if (savedKey) startIdentification(imagePack); });
+          return;
+        }
+        const overlay = document.getElementById('loadingOverlay');
+        const loadingText = document.getElementById('loadingText');
+        loadingText.textContent = '낙엽 밟으며 식물을 판정하는 중...';
+        overlay.classList.add('active');
+        playLeafRustleSound();
+        try {
+          const [dateText, locationText, plantInfo] = await Promise.all([
+            state.settings.recordDate ? Promise.resolve(formatNowKorean()) : Promise.resolve(''),
+            state.settings.recordLocation ? getCurrentLocationText() : Promise.resolve(''),
+            identifyPlantWithGemini(apiKey, imagePack.base64, imagePack.mimeType)
+          ]);
+          loadingText.textContent = '대표 식물 사진과 비교하는 중...';
+          const refPhotos = await fetchReferencePhotos(plantInfo.scientificName, plantInfo.englishName, plantInfo.nameKo);
+          state.analysisResult = { ...plantInfo, dateText, locationText };
+          state.referencePhotos = refPhotos;
+          state.view = 'result';
+          render();
+        } catch (err) {
+          showAlertModal('판정 오류', err.message || '식물 정보를 불러오지 못했어요. API 키와 네트워크를 확인해 주세요.');
+        } finally {
+          overlay.classList.remove('active');
+        }
+      }
+
+      function render() {
+        const topTitle = document.getElementById('topTitle');
+        const headerActions = document.getElementById('headerActions');
+        const mainContent = document.getElementById('mainContent');
+        const tabMap = { browse: 'tabBrowse', result: 'tabBrowse', notebook: 'tabNotebook', detail: 'tabNotebook', settings: 'tabSettings' };
+        document.querySelectorAll('.tab-btn').forEach((btn) => btn.classList.toggle('active', btn.id === tabMap[state.view]));
+        headerActions.innerHTML = '';
+
+        if (state.view === 'browse') {
+          topTitle.textContent = '찾아보기';
+          renderBrowseView(mainContent);
+        } else if (state.view === 'result') {
+          topTitle.textContent = '알아보기';
+          renderResultView(mainContent);
+        } else if (state.view === 'notebook') {
+          topTitle.textContent = '잎사귀 노트';
+          renderNotebookHeaderActions(headerActions);
+          renderNotebookView(mainContent);
+        } else if (state.view === 'detail') {
+          topTitle.textContent = '식물 기록 상세';
+          const backBtn = document.createElement('button');
+          backBtn.type = 'button';
+          backBtn.className = 'btn-ghost';
+          backBtn.textContent = '목록으로';
+          backBtn.addEventListener('click', () => { state.view = 'notebook'; render(); });
+          headerActions.appendChild(backBtn);
+          renderDetailView(mainContent);
+        } else if (state.view === 'settings') {
+          topTitle.textContent = '설정';
+          renderSettingsView(mainContent);
+        }
+      }
+
+      function renderBrowseView(container) {
+        container.innerHTML = `
+          <div class="capture-hero">
+            <div class="preview-frame" id="previewFrame">
+              ${
+                state.previewUrl
+                  ? `<img src="${escapeAttr(state.previewUrl)}" alt="선택한 식물 사진" />`
+                  : `<div class="preview-placeholder">잎, 꽃, 풀, 나무를 촬영하거나<br/>앨범에서 사진을 골라보세요.</div>`
+              }
+            </div>
+            <div class="capture-buttons">
+              <button type="button" class="btn-primary" id="btnCamera"><span>카메라 찍기</span></button>
+              <button type="button" class="btn-secondary" id="btnAlbum"><span>앨범 올리기</span></button>
+            </div>
+          </div>
+          <div class="info-card">
+            <h3>백과사전식 식물 판정 & 일기 기록</h3>
+            <p>사진을 올리면 Gemini AI가 식물 이름과 학명, 특징을 알려주고 대표 사진 4장과 함께 비교할 수 있게 보여드려요.</p>
+          </div>
+        `;
+        document.getElementById('btnCamera').addEventListener('click', () => { ensureAudioContext(); document.getElementById('cameraInput').click(); });
+        document.getElementById('btnAlbum').addEventListener('click', () => { ensureAudioContext(); document.getElementById('albumInput').click(); });
+      }
+
+      function renderResultView(container) {
+        const res = state.analysisResult;
+        if (!res) { state.view = 'browse'; render(); return; }
+        const metaBadges = [];
+        if (state.settings.recordDate && res.dateText) metaBadges.push(`<span class="meta-badge">날짜 · ${escapeHtml(res.dateText)}</span>`);
+        if (state.settings.recordLocation && res.locationText) metaBadges.push(`<span class="meta-badge">위치 · ${escapeHtml(res.locationText)}</span>`);
+        const refHtml = state.referencePhotos.map((item, idx) => item && item.src
+          ? `<div class="ref-tile"><img src="${escapeAttr(item.src)}" alt="${escapeAttr(item.title || `비교 사진 ${idx + 1}`)}" loading="lazy" /></div>`
+          : `<div class="ref-tile">비교 사진<br/>없음</div>`).join('');
+
+        container.innerHTML = `
+          <div class="info-card" style="display:flex;flex-direction:column;gap:12px;">
+            <img class="result-photo" src="${escapeAttr(state.previewUrl)}" alt="촬영 또는 업로드한 식물 사진" />
+            ${metaBadges.length ? `<div class="meta-strip">${metaBadges.join('')}</div>` : ''}
+            <div>
+              <h3 class="plant-name-ko">${escapeHtml(res.nameKo)}</h3>
+              <div class="plant-name-la">${escapeHtml(res.scientificName)}</div>
+              <p class="plant-desc">${escapeHtml(res.description)}</p>
+            </div>
+          </div>
+          <div class="info-card">
+            <h3>식물 대표 사진 비교</h3>
+            <div class="ref-grid">${refHtml}</div>
+          </div>
+          <div class="action-row">
+            <button type="button" class="btn-secondary" id="btnBackToBrowse">돌아가기</button>
+            <button type="button" class="btn-primary" id="btnSaveRecord">기록하기</button>
+          </div>
+        `;
+
+        document.getElementById('btnBackToBrowse').addEventListener('click', () => { state.view = 'browse'; render(); });
+        document.getElementById('btnSaveRecord').addEventListener('click', async () => {
+          const entry = {
+            id: `plant_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            createdAt: Date.now(),
+            photoDataUrl: state.previewUrl,
+            nameKo: res.nameKo,
+            scientificName: res.scientificName,
+            description: res.description,
+            dateText: state.settings.recordDate ? (res.dateText || formatNowKorean()) : '',
+            locationText: state.settings.recordLocation ? (res.locationText || '') : '',
+            referencePhotos: state.referencePhotos,
+            comments: []
+          };
+          await saveEntryToDB(entry);
+          state.entries = await fetchAllEntries();
+          showAlertModal('기록되었습니다', '식물 일기장에 안전하게 저장되었어요.', () => {
+            state.deleteMode = false;
+            state.selectedIds.clear();
+            state.view = 'notebook';
+            render();
+          });
+        });
+      }
+
+      function renderNotebookHeaderActions(container) {
+        if (!state.entries.length) return;
+        const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = state.deleteMode ? 'btn-ghost danger' : 'btn-ghost';
+        toggleBtn.textContent = state.deleteMode ? '취소' : '삭제';
+        toggleBtn.addEventListener('click', () => { state.deleteMode = !state.deleteMode; state.selectedIds.clear(); render(); });
+        container.appendChild(toggleBtn);
+      }
+
+      function renderNotebookView(container) {
+        if (!state.entries.length) {
+          container.innerHTML = `<div class="empty-state"><p style="margin:0 0 6px;font-weight:700;color:var(--green-deep);">아직 기록된 식물이 없어요</p><p style="margin:0;font-size:13.5px;">찾아보기에서 식물을 판정하고 [기록하기]를 눌러 나만의 노트를 채워보세요.</p></div>`;
+          return;
+        }
+        let html = state.deleteMode
+          ? `<div class="delete-bar"><span>선택됨: ${state.selectedIds.size}개</span><button type="button" class="btn-danger" id="btnConfirmDelete">선택 삭제</button></div>`
+          : '';
+        const tiles = state.entries.map((item) => {
+          const checked = state.selectedIds.has(item.id) ? 'checked' : '';
+          return `<div class="diary-thumb" data-id="${escapeAttr(item.id)}"><img src="${escapeAttr(item.photoDataUrl)}" alt="${escapeAttr(item.nameKo)}" loading="lazy" />${state.deleteMode ? `<input type="checkbox" class="diary-check" data-check-id="${escapeAttr(item.id)}" ${checked} />` : ''}</div>`;
+        }).join('');
+        html += `<div class="diary-grid">${tiles}</div>`;
+        container.innerHTML = html;
+
+        if (state.deleteMode) {
+          container.querySelectorAll('.diary-check').forEach((chk) => {
+            chk.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const id = chk.getAttribute('data-check-id');
+              if (chk.checked) state.selectedIds.add(id); else state.selectedIds.delete(id);
+              render();
+            });
+          });
+          const confirmBtn = document.getElementById('btnConfirmDelete');
+          if (confirmBtn) {
+            confirmBtn.addEventListener('click', async () => {
+              if (!state.selectedIds.size) { showAlertModal('안내', '삭제할 식물을 먼저 선택해 주세요.'); return; }
+              await deleteEntriesFromDB(Array.from(state.selectedIds));
+              state.entries = await fetchAllEntries();
+              state.deleteMode = false;
+              state.selectedIds.clear();
+              render();
+            });
+          }
+        }
+
+        container.querySelectorAll('.diary-thumb').forEach((tile) => {
+          tile.addEventListener('click', () => {
+            const id = tile.getAttribute('data-id');
+            if (state.deleteMode) {
+              if (state.selectedIds.has(id)) state.selectedIds.delete(id); else state.selectedIds.add(id);
+              render();
+              return;
+            }
+            state.selectedEntryId = id;
+            state.view = 'detail';
+            render();
+          });
+        });
+      }
+
+      function renderDetailView(container) {
+        const entry = state.entries.find((item) => item.id === state.selectedEntryId);
+        if (!entry) { state.view = 'notebook'; render(); return; }
+        const metaBadges = [];
+        if (entry.dateText) metaBadges.push(`<span class="meta-badge">날짜 · ${escapeHtml(entry.dateText)}</span>`);
+        if (entry.locationText) metaBadges.push(`<span class="meta-badge">위치 · ${escapeHtml(entry.locationText)}</span>`);
+        const comments = Array.isArray(entry.comments) ? entry.comments : [];
+        const commentItemsHtml = comments.length
+          ? comments.map((c) => `<div class="comment-item"><div>${escapeHtml(c.text)}</div><span class="comment-time">${escapeHtml(c.createdAtText || '')}</span></div>`).join('')
+          : `<p class="setting-sub" style="margin:8px 0 12px;">아직 남긴 관찰 메모가 없어요.</p>`;
+
+        container.innerHTML = `
+          <div class="info-card" style="display:flex;flex-direction:column;gap:12px;">
+            <img class="result-photo" src="${escapeAttr(entry.photoDataUrl)}" alt="${escapeAttr(entry.nameKo)}" />
+            ${metaBadges.length ? `<div class="meta-strip">${metaBadges.join('')}</div>` : ''}
+            <div>
+              <h3 class="plant-name-ko">${escapeHtml(entry.nameKo)}</h3>
+              <div class="plant-name-la">${escapeHtml(entry.scientificName)}</div>
+              <p class="plant-desc">${escapeHtml(entry.description)}</p>
+            </div>
+          </div>
+          <div class="info-card">
+            <h3>댓글(관찰 메모)</h3>
+            <div class="comment-list" id="commentList">${commentItemsHtml}</div>
+            <form class="comment-form" id="commentForm">
+              <input type="text" class="input-field" id="commentInput" placeholder="관찰 메모나 감상을 남겨보세요..." required />
+              <button type="submit" class="btn-primary" style="padding:10px 14px;font-size:14px;">등록</button>
+            </form>
+          </div>
+        `;
+
+        document.getElementById('commentForm').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const input = document.getElementById('commentInput');
+          const text = input.value.trim();
+          if (!text) return;
+          const updatedComments = [...comments, { id: `c_${Date.now()}`, text, createdAtText: formatNowKorean() }];
+          await saveEntryToDB({ ...entry, comments: updatedComments });
+          state.entries = await fetchAllEntries();
+          input.value = '';
+          render();
+        });
+      }
+
+      function renderSettingsView(container) {
+        const apiKey = getApiKey();
+        container.innerHTML = `
+          <div class="info-card" style="display:flex;flex-direction:column;gap:16px;">
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">날짜</div>
+                <div class="setting-sub">식물 판정 및 기록 시 날짜를 함께 저장·표시합니다.</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="toggleDate" ${state.settings.recordDate ? 'checked' : ''} />
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">위치</div>
+                <div class="setting-sub">식물 판정 및 기록 시 현재 GPS 좌표를 함께 저장·표시합니다.</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="toggleLocation" ${state.settings.recordLocation ? 'checked' : ''} />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="info-card" style="display:flex;flex-direction:column;gap:10px;">
+            <h3>Gemini API 키</h3>
+            <p>식물 이미지 판정에 사용할 Gemini API 키를 저장합니다.</p>
+            <input type="password" class="input-field" id="settingsApiKeyInput" placeholder="Gemini API 키를 입력하세요" value="${escapeAttr(apiKey)}" />
+            <button type="button" class="btn-primary" id="btnSaveSettingsApiKey">API 키 저장</button>
+          </div>
+          <footer class="copyright-footer">copyright 2026. 이유정. all rights reserved</footer>
+        `;
+
+        document.getElementById('toggleDate').addEventListener('change', (e) => saveSettings({ ...state.settings, recordDate: e.target.checked }));
+        document.getElementById('toggleLocation').addEventListener('change', (e) => saveSettings({ ...state.settings, recordLocation: e.target.checked }));
+        document.getElementById('btnSaveSettingsApiKey').addEventListener('click', () => {
+          setApiKey(document.getElementById('settingsApiKeyInput').value.trim());
+          showAlertModal('저장 완료', 'Gemini API 키가 브라우저에 저장되었어요.');
+        });
+      }
+
+      function escapeHtml(str) {
+        return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+
+      function escapeAttr(str) {
+        return escapeHtml(str).replace(/'/g, '&#39;');
+      }
+
+      async function handleFileChange(event) {
+        const file = event.target.files && event.target.files[0];
+        event.target.value = '';
+        if (!file) return;
+        try {
+          const pack = await readImageFile(file);
+          state.previewUrl = pack.dataUrl;
+          state.previewBase64 = pack.base64;
+          state.previewMimeType = pack.mimeType;
+          render();
+          await startIdentification(pack);
+        } catch (_) {
+          showAlertModal('오류', '이미지를 불러오는 중 문제가 발생했어요.');
+        }
+      }
+
+      document.getElementById('cameraInput').addEventListener('change', handleFileChange);
+      document.getElementById('albumInput').addEventListener('change', handleFileChange);
+      document.getElementById('tabBrowse').addEventListener('click', () => { state.deleteMode = false; state.selectedIds.clear(); state.view = 'browse'; render(); });
+      document.getElementById('tabNotebook').addEventListener('click', () => { state.deleteMode = false; state.selectedIds.clear(); state.view = 'notebook'; render(); });
+      document.getElementById('tabSettings').addEventListener('click', () => { state.deleteMode = false; state.selectedIds.clear(); state.view = 'settings'; render(); });
+
+      (async function init() {
+        try { state.entries = await fetchAllEntries(); } catch (_) { state.entries = []; }
+        render();
+        setTimeout(() => {
+          const splash = document.getElementById('splashScreen');
+          if (splash) splash.classList.add('hidden');
+        }, 1500);
+      })();
+    })();
+  </script>
+</body>
 </html>

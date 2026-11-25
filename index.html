@@ -842,11 +842,17 @@
 
       let audioCtx = null;
       function ensureAudioContext() {
-        const Ctx = window.AudioContext || window.webkitAudioContext;
-        if (!Ctx) return null;
-        if (!audioCtx) audioCtx = new Ctx();
-        if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
-        return audioCtx;
+        try {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          if (!Ctx) return null;
+          if (!audioCtx) audioCtx = new Ctx();
+          if (audioCtx && audioCtx.state === "suspended" && typeof audioCtx.resume === "function") {
+            audioCtx.resume().catch(() => {});
+          }
+          return audioCtx;
+        } catch (_) {
+          return null;
+        }
       }
 
       function playLeafRustleSound() {
@@ -2182,13 +2188,14 @@
           "</div>" +
           "<div id=\"bottomSheetBody\"></div>" +
         "</div>";
-      document.body.appendChild(overlay);
+      const parent = document.body || document.documentElement;
+      if (parent) parent.appendChild(overlay);
 
       overlay.addEventListener("click", (e) => {
-        if (e.target === overlay) closeSheetNow();
+        if (e.target === overlay && typeof closeSheetNow === "function") closeSheetNow();
       });
       document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && overlay.classList.contains("open")) {
+        if (e.key === "Escape" && overlay.classList.contains("open") && typeof closeSheetNow === "function") {
           closeSheetNow();
         }
       });
@@ -2199,7 +2206,7 @@
       closeBtn.onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        closeSheetNow();
+        if (typeof closeSheetNow === "function") closeSheetNow();
       };
     }
     return overlay;

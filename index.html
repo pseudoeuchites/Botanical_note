@@ -1651,7 +1651,7 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
           }
           state.analysisResult = { ...plantInfo, dateText, locationText };
           state.referencePhotos = refPhotos;
-          state.view = 'result';
+          state.view = 'browse';
           render();
         } catch (err) {
           const remainMs = Math.max(0, minHoldUntil - Date.now());

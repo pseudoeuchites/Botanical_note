@@ -541,18 +541,15 @@
     position: fixed;
     inset: 0;
     z-index: 800;
-    background: rgba(29, 34, 66, 0.36);
+    background: rgba(29, 34, 66, 0);
     display: flex;
     align-items: flex-end;
     justify-content: center;
-    opacity: 0;
-    visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.32s ease, visibility 0.32s ease;
+    transition: background-color 0.35s ease;
   }
   #bottomSheetOverlay.open {
-    opacity: 1;
-    visibility: visible;
+    background: rgba(29, 34, 66, 0.38);
     pointer-events: auto;
   }
   #bottomSheetCard {
@@ -567,12 +564,12 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transform: translateY(100%);
-    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translate3d(0, 100%, 0);
+    transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
     will-change: transform;
   }
   #bottomSheetOverlay.open #bottomSheetCard {
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
   #bottomSheetHeader {
     display: flex;
@@ -1681,18 +1678,18 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
         return overlay;
       }
 
-      let __sheetClearTimer = null;
+      window.__sheetClearTimer = window.__sheetClearTimer || null;
       function closeBottomSheet() {
         const overlay = document.getElementById("bottomSheetOverlay");
         if (overlay) overlay.classList.remove("open");
         const body = document.getElementById("bottomSheetBody");
-        if (__sheetClearTimer) clearTimeout(__sheetClearTimer);
-        __sheetClearTimer = setTimeout(() => {
+        if (window.__sheetClearTimer) clearTimeout(window.__sheetClearTimer);
+        window.__sheetClearTimer = setTimeout(() => {
           const ov = document.getElementById("bottomSheetOverlay");
           if (ov && !ov.classList.contains("open") && body) {
             body.innerHTML = "";
           }
-        }, 420);
+        }, 440);
         if (typeof state === "object" && state && state.view !== "browse" && state.view !== "result") {
           state.deleteMode = false;
           if (state.selectedIds && typeof state.selectedIds.clear === "function") {
@@ -1712,40 +1709,47 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
 
         const isSheetView = state.view === 'notebook' || state.view === 'detail' || state.view === 'settings';
         if (isSheetView) {
-          topTitle.textContent = '찾아보기';
+          topTitle.textContent = "찾아보기";
           renderBrowseView(mainContent);
 
           const overlay = ensureBottomSheetDom();
-          const sheetTitle = document.getElementById('bottomSheetTitle');
-          const sheetActions = document.getElementById('bottomSheetHeaderActions');
-          const sheetBody = document.getElementById('bottomSheetBody');
-          sheetActions.innerHTML = '';
+          const card = document.getElementById("bottomSheetCard");
+          const sheetTitle = document.getElementById("bottomSheetTitle");
+          const sheetActions = document.getElementById("bottomSheetHeaderActions");
+          const sheetBody = document.getElementById("bottomSheetBody");
+          sheetActions.innerHTML = "";
 
-          if (state.view === 'notebook') {
+          if (state.view === "notebook") {
             const cleanName = (state.settings && state.settings.userName || "").trim();
-            sheetTitle.textContent = cleanName ? `${cleanName}의 잎사귀 노트` : '잎사귀 노트';
+            sheetTitle.textContent = cleanName ? `${cleanName}의 잎사귀 노트` : "잎사귀 노트";
             renderNotebookHeaderActions(sheetActions);
             renderNotebookView(sheetBody);
-          } else if (state.view === 'detail') {
-            sheetTitle.textContent = '나의 식물 일기';
-            const backBtn = document.createElement('button');
-            backBtn.type = 'button';
-            backBtn.className = 'btn-ghost';
-            backBtn.textContent = '목록으로';
-            backBtn.addEventListener('click', () => { state.view = 'notebook'; render(); });
+          } else if (state.view === "detail") {
+            sheetTitle.textContent = "나의 식물 일기";
+            const backBtn = document.createElement("button");
+            backBtn.type = "button";
+            backBtn.className = "btn-ghost";
+            backBtn.textContent = "목록으로";
+            backBtn.addEventListener("click", () => { state.view = "notebook"; render(); });
             sheetActions.appendChild(backBtn);
             renderDetailView(sheetBody);
-          } else if (state.view === 'settings') {
-            sheetTitle.textContent = '설정';
+          } else if (state.view === "settings") {
+            sheetTitle.textContent = "설정";
             renderSettingsView(sheetBody);
           }
 
-          void overlay.offsetHeight;
-          requestAnimationFrame(() => {
+          if (window.__sheetClearTimer) {
+            clearTimeout(window.__sheetClearTimer);
+            window.__sheetClearTimer = null;
+          }
+          if (!overlay.classList.contains("open")) {
+            if (card) card.getBoundingClientRect();
             requestAnimationFrame(() => {
-              overlay.classList.add('open');
+              requestAnimationFrame(() => {
+                overlay.classList.add("open");
+              });
             });
-          });
+          }
           return;
         }
 
@@ -2073,6 +2077,7 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
       document.getElementById('tabSettings').addEventListener('click', () => { state.deleteMode = false; state.selectedIds.clear(); state.view = 'settings'; render(); });
 
       (async function init() {
+        ensureBottomSheetDom();
         state.entries = [];
         render();
         try {

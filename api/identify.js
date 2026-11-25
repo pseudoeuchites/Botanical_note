@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { model = 'gemini-2.5-flash', payload } = req.body;
+    const { model = 'gemini-3.8-flash', payload } = req.body;
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
       {

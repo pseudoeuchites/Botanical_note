@@ -1053,12 +1053,7 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
       }
 
       async function identifyPlantWithGemini(apiKey, base64Data, mimeType) {
-        const models = [
-          "gemini-3.8-flash",
-          "gemini-3.8-flash-lite",
-          "gemini-3.1-flash-lite-preview",
-          "gemini-2.5-flash-lite"
-        ];
+        const models = ["gemini-3.8-flash", "gemini-2.5-flash-lite"];
         const loadingText = document.getElementById("loadingText");
         const promptText = [
           "당신은 식물학 백과사전 전문가입니다. 첨부된 사진 속 식물을 판별하고 아래 JSON 스키마로만 응답하세요.",
@@ -1071,7 +1066,7 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
         const payload = JSON.stringify({
           contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: mimeType, data: base64Data } }] }],
           generationConfig: {
-                thinkingConfig: { thinkingBudget: 0 },
+            thinkingConfig: { thinkingBudget: 0 },
             responseMimeType: "application/json",
             responseSchema: {
               type: "OBJECT",
@@ -1087,73 +1082,46 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
         });
 
         let lastError = null;
-        const delays = [900, 1600, 2600, 4000, 6000];
-
-        for (let round = 0; round < 2; round++) {
-          for (const model of models) {
-            const endpoint = "/api/identify";
-
-            for (let attempt = 0; attempt <= delays.length; attempt++) {
-              if (loadingText) {
-                loadingText.textContent = attempt === 0 && round === 0
-                  ? ("식물 특징을 살펴보는 중... (" + model + ")")
-                  : ("서버 응답을 다시 요청하는 중... (" + model + ")");
-              }
-
-              try {
-                const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 12000);
-          let response;
-          try {
-            response = await fetch(endpoint, {
-              signal: controller.signal,
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ model, payload })
-            });
-          } finally {
-            clearTimeout(timeoutId);
+        for (const model of models) {
+          if (loadingText) {
+            loadingText.textContent = "식물 특징을 살펴보는 중... (" + model + ")";
           }
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000);
+          try {
+            const response = await fetch("/api/identify", {
+              signal: controller.signal,
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ model, payload })
+            });
+            clearTimeout(timeoutId);
 
-                if (response.ok) {
-                  const data = await response.json();
-                  const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                  const cleaned = rawText.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
-                  const parsed = JSON.parse(cleaned);
-                  return {
-                    nameKo: (parsed.name_ko || "이름 미확인 식물").trim(),
-                    scientificName: (parsed.scientific_name || "Species indeterminata").trim(),
-                    englishName: (parsed.english_name || parsed.scientific_name || "plant").trim(),
-                    description: (parsed.description || "상세 특징 정보가 제공되지 않았습니다.").trim()
-                  };
-                }
+            if (response.ok) {
+              const data = await response.json();
+              const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+              const cleaned = rawText.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
+              const parsed = JSON.parse(cleaned);
+              return {
+                nameKo: (parsed.name_ko || "이름 미확인 식물").trim(),
+                scientificName: (parsed.scientific_name || "Species indeterminata").trim(),
+                englishName: (parsed.english_name || parsed.scientific_name || "plant").trim(),
+                description: (parsed.description || "상세 특징 정보가 제공되지 않았습니다.").trim()
+              };
+            }
 
-                const errText = await response.text();
-                lastError = new Error("Gemini API 오류 (" + response.status + " · " + model + "): " + errText.slice(0, 180));
-
-                if (response.status === 503 || response.status === 429 || response.status === 500 || response.status === 502 || response.status === 504) {
-                  const waitTime = delays[Math.min(attempt, delays.length - 1)] + Math.floor(Math.random() * 450);
-                  await new Promise((r) => setTimeout(r, waitTime));
-                  if (attempt >= 2) break;
-                  continue;
-                }
-
-                if (response.status === 404) {
-                  break;
-                }
-
-                throw lastError;
-              } catch (netErr) {
-                lastError = netErr;
-                const waitTime = delays[Math.min(attempt, delays.length - 1)] + 250;
-                await new Promise((r) => setTimeout(r, waitTime));
-                if (attempt >= 2) break;
-              }
+            const errText = await response.text();
+            lastError = new Error("서버 응답 오류 (" + response.status + " · " + model + "): " + errText.slice(0, 140));
+          } catch (err) {
+            clearTimeout(timeoutId);
+            if (err && err.name === "AbortError") {
+              lastError = new Error("응답 시간 초과 (15초 · " + model + ") - 서버가 혼잡합니다.");
+            } else {
+              lastError = new Error(err && err.message ? err.message : "네트워크 연결 오류");
             }
           }
         }
-
-        throw lastError || new Error("잠시 후 다시 시도해 주세요.");
+        throw lastError || new Error("식물 판정 서버에 연결할 수 없습니다.");
       }
 
       async function fetchReferencePhotos(scientificName, englishName, koreanName) {
@@ -1644,7 +1612,12 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
             identifyPlantWithGemini(apiKey, imagePack.base64, imagePack.mimeType)
           ]);
           loadingText.textContent = '대표 식물 사진과 비교하는 중...';
-          const refPhotos = await fetchReferencePhotos(plantInfo.scientificName, plantInfo.englishName, plantInfo.nameKo);
+          let refPhotos = [];
+          try {
+            refPhotos = await fetchReferencePhotos(plantInfo.scientificName, plantInfo.englishName, plantInfo.nameKo);
+          } catch (_) {
+            refPhotos = [];
+          }
           const remainMs = Math.max(0, minHoldUntil - Date.now());
           if (remainMs > 0) {
             await new Promise((resolve) => setTimeout(resolve, remainMs));

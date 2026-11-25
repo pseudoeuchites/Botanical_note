@@ -1649,6 +1649,46 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
         state.settings = { ...(state.settings || {}), userName: trimmed, namePromptShown: true };
         render();
       };
+      
+      function ensureBottomSheetDom() {
+        let overlay = document.getElementById("bottomSheetOverlay");
+        if (!overlay) {
+          overlay = document.createElement("div");
+          overlay.id = "bottomSheetOverlay";
+          overlay.innerHTML =
+            "<div id=\"bottomSheetCard\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"bottomSheetTitle\">" +
+              "<div id=\"bottomSheetHeader\">" +
+                "<h2 id=\"bottomSheetTitle\"></h2>" +
+                "<div id=\"bottomSheetHeaderRight\">" +
+                  "<div id=\"bottomSheetHeaderActions\"></div>" +
+                  "<button type=\"button\" id=\"bottomSheetCloseBtn\" aria-label=\"닫기\">×</button>" +
+                "</div>" +
+              "</div>" +
+              "<div id=\"bottomSheetBody\"></div>" +
+            "</div>";
+          const parent = document.body || document.documentElement;
+          if (parent) parent.appendChild(overlay);
+          overlay.addEventListener("click", (e) => {
+            if (e.target === overlay) closeBottomSheet();
+          });
+        }
+        const closeBtn = document.getElementById("bottomSheetCloseBtn");
+        if (closeBtn && !closeBtn.dataset.bound) {
+          closeBtn.dataset.bound = "1";
+          closeBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeBottomSheet();
+          });
+        }
+        return overlay;
+      }
+
+      function closeBottomSheet() {
+        const overlay = document.getElementById("bottomSheetOverlay");
+        if (overlay) overlay.classList.remove("open");
+      }
+
       function render() {
         const topTitle = document.getElementById('topTitle');
         const headerActions = document.getElementById('headerActions');

@@ -2274,7 +2274,7 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
     window.addEventListener("load", () => {
       const cur = readSettings();
       if (!cur.namePromptShown && !cur.userName) {
-        /* disabled openNameModal for mobile test */
+        setTimeout(openNameModal, 2600);
       }
     });
 

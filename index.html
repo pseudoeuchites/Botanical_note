@@ -785,7 +785,7 @@
       }
 
       function setApiKey(key) {
-        localStorage.setItem(STORAGE_KEYS.API_KEY, key.trim());
+        try { localStorage.setItem(STORAGE_KEYS.API_KEY, key.trim()); } catch (e) {}
       }
 
       function openDB() {
@@ -2234,7 +2234,7 @@
 
     function readSettings() {
       try {
-        const raw = localStorage.getItem(SETTINGS_KEY);
+        let raw = null; try { raw = localStorage.getItem(SETTINGS_KEY); } catch (e) {}
         const parsed = raw ? JSON.parse(raw) : {};
         return {
           recordDate: parsed.recordDate !== false,
@@ -2257,7 +2257,7 @@
 
     function writeUserName(name) {
       const next = { ...readSettings(), userName: (name || "").trim(), namePromptShown: true };
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(next)); } catch (e) {}
       syncAppSettingsState(next);
       if (typeof window.__setBotanicalUserName === "function") window.__setBotanicalUserName(next.userName);
       const titleEl = document.getElementById("bottomSheetTitle");

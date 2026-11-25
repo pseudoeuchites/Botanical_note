@@ -777,7 +777,7 @@
 
       function saveSettings(next) {
         state.settings = { ...next };
-        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(state.settings));
+        try { localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(state.settings)); } catch (e) {}
       }
 
       function getApiKey() {

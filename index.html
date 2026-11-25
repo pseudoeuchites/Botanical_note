@@ -1681,11 +1681,18 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
         return overlay;
       }
 
+      let __sheetClearTimer = null;
       function closeBottomSheet() {
         const overlay = document.getElementById("bottomSheetOverlay");
         if (overlay) overlay.classList.remove("open");
         const body = document.getElementById("bottomSheetBody");
-        if (body) body.innerHTML = "";
+        if (__sheetClearTimer) clearTimeout(__sheetClearTimer);
+        __sheetClearTimer = setTimeout(() => {
+          const ov = document.getElementById("bottomSheetOverlay");
+          if (ov && !ov.classList.contains("open") && body) {
+            body.innerHTML = "";
+          }
+        }, 420);
         if (typeof state === "object" && state && state.view !== "browse" && state.view !== "result") {
           state.deleteMode = false;
           if (state.selectedIds && typeof state.selectedIds.clear === "function") {
@@ -1733,7 +1740,12 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
             renderSettingsView(sheetBody);
           }
 
-          overlay.classList.add('open');
+          void overlay.offsetHeight;
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              overlay.classList.add('open');
+            });
+          });
           return;
         }
 

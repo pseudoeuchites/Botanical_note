@@ -203,7 +203,134 @@
     .modal-title { margin: 0 0 8px; font-size: 18px; font-weight: 700; color: var(--green-deep); }
     .modal-desc { margin: 0 0 14px; font-size: 13.5px; color: var(--text-sub); }
     .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
-  </style>
+  
+  /* 앱 설치 버튼 & 분기 안내 모달 */
+  .btn-install-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 11px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.16);
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-install-header:active {
+    transform: scale(0.96);
+    background: rgba(255, 255, 255, 0.26);
+  }
+  #installGuideOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 950;
+    background: rgba(29, 34, 66, 0.48);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  #installGuideOverlay.open {
+    display: flex;
+  }
+  .install-modal-card {
+    width: 100%;
+    max-width: 360px;
+    background: #FFFFFF;
+    border-radius: 22px;
+    padding: 22px 20px 20px;
+    box-shadow: 0 18px 40px rgba(29, 34, 66, 0.24);
+    color: #1D2242;
+    text-align: center;
+  }
+  .install-modal-title {
+    margin: 0 0 6px;
+    font-size: 18px;
+    font-weight: 800;
+    color: #1D2242;
+  }
+  .install-modal-sub {
+    margin: 0 0 18px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #5B628A;
+  }
+  .install-os-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .install-os-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 10px;
+    border-radius: 16px;
+    border: 1.5px solid #E2E6F8;
+    background: #F7F8FE;
+    color: #1D2242;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .install-os-btn:active {
+    background: #ECEFFD;
+    border-color: #6E7FE6;
+  }
+  .install-step-box {
+    background: #F7F8FE;
+    border: 1px solid #E2E6F8;
+    border-radius: 16px;
+    padding: 14px;
+    text-align: left;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #2C3258;
+    margin-bottom: 14px;
+  }
+  .install-step-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .install-step-row:last-child {
+    margin-bottom: 0;
+  }
+  .install-step-num {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #6E7FE6;
+    color: #FFFFFF;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+  }
+  .install-share-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: #FFFFFF;
+    border: 1px solid #CFD6F5;
+    color: #4A5CD0;
+    font-weight: 700;
+    vertical-align: middle;
+  }
+
+</style>
 <style id="intro-splash-style">
   #introSplash {
     position: fixed;
@@ -1698,6 +1825,132 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
         }
       }
 
+      
+      // === PWA 앱 설치 버튼 & 안드로이드/아이폰 분기 팝업 ===
+      window.__deferredInstallPrompt = null;
+      window.addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault();
+        window.__deferredInstallPrompt = e;
+      });
+      window.addEventListener("appinstalled", () => {
+        window.__deferredInstallPrompt = null;
+        if (typeof render === "function") render();
+      });
+
+      function isRunningStandalone() {
+        return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+               window.navigator.standalone === true;
+      }
+
+      function closeInstallGuideModal() {
+        const ov = document.getElementById("installGuideOverlay");
+        if (ov) ov.classList.remove("open");
+      }
+
+      function renderInstallModalStep(mode) {
+        const box = document.getElementById("installGuideContent");
+        if (!box) return;
+
+        if (mode === "select") {
+          box.innerHTML = `
+            <h3 class="install-modal-title">홈 화면에 앱 설치</h3>
+            <p class="install-modal-sub">사용 중인 스마트폰 기종을 선택해 주세요.<br/>앱처럼 아이콘을 만들어 바로 열 수 있어요.</p>
+            <div class="install-os-grid">
+              <button type="button" class="install-os-btn" id="btnSelectAndroid">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5A6CE0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                <span>안드로이드</span>
+              </button>
+              <button type="button" class="install-os-btn" id="btnSelectIos">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5A6CE0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><line x1="10" y1="5" x2="14" y2="5"/></svg>
+                <span>아이폰</span>
+              </button>
+            </div>
+            <button type="button" class="btn-secondary" style="width:100%;" id="btnCloseInstallModal">닫기</button>
+          `;
+          document.getElementById("btnSelectAndroid").onclick = async () => {
+            if (window.__deferredInstallPrompt) {
+              const promptEvent = window.__deferredInstallPrompt;
+              window.__deferredInstallPrompt = null;
+              closeInstallGuideModal();
+              promptEvent.prompt();
+              await promptEvent.userChoice.catch(() => {});
+            } else {
+              renderInstallModalStep("android-fallback");
+            }
+          };
+          document.getElementById("btnSelectIos").onclick = () => renderInstallModalStep("ios");
+          document.getElementById("btnCloseInstallModal").onclick = closeInstallGuideModal;
+          return;
+        }
+
+        if (mode === "android-fallback") {
+          box.innerHTML = `
+            <h3 class="install-modal-title">안드로이드 설치 안내</h3>
+            <p class="install-modal-sub">카카오톡·네이버 안에서는 바로 설치가 제한돼요.<br/>아래 순서대로 10초면 설치할 수 있어요.</p>
+            <div class="install-step-box">
+              <div class="install-step-row"><span class="install-step-num">1</span><span>화면 오른쪽 위(또는 아래) <strong>⋮ 더보기</strong> 버튼을 눌러주세요.</span></div>
+              <div class="install-step-row"><span class="install-step-num">2</span><span><strong>다른 브라우저로 열기</strong>(Chrome 또는 삼성 인터넷)를 선택하세요.</span></div>
+              <div class="install-step-row"><span class="install-step-num">3</span><span>브라우저 메뉴에서 <strong>홈 화면에 추가</strong> 또는 <strong>앱 설치</strong>를 누르면 완료!</span></div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="btn-secondary" style="flex:1;" id="btnBackInstallSelect">이전</button>
+              <button type="button" class="btn-primary" style="flex:1;" id="btnDoneInstallModal">확인</button>
+            </div>
+          `;
+          document.getElementById("btnBackInstallSelect").onclick = () => renderInstallModalStep("select");
+          document.getElementById("btnDoneInstallModal").onclick = closeInstallGuideModal;
+          return;
+        }
+
+        if (mode === "ios") {
+          box.innerHTML = `
+            <h3 class="install-modal-title">아이폰 홈 화면 추가</h3>
+            <p class="install-modal-sub">Safari 브라우저에서 아래 두 단계만 누르면<br/>홈 화면에 앱 아이콘이 생겨요.</p>
+            <div class="install-step-box">
+              <div class="install-step-row">
+                <span class="install-step-num">1</span>
+                <span>화면 맨 아래 가운데 <strong>공유 버튼</strong> <span class="install-share-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></span> 을 눌러주세요.</span>
+              </div>
+              <div class="install-step-row">
+                <span class="install-step-num">2</span>
+                <span>메뉴를 살짝 위로 올려 <strong>홈 화면에 추가</strong>를 누른 뒤 오른쪽 위 <strong>추가</strong>를 누르면 완료!</span>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="btn-secondary" style="flex:1;" id="btnBackInstallSelect">이전</button>
+              <button type="button" class="btn-primary" style="flex:1;" id="btnDoneInstallModal">확인</button>
+            </div>
+          `;
+          document.getElementById("btnBackInstallSelect").onclick = () => renderInstallModalStep("select");
+          document.getElementById("btnDoneInstallModal").onclick = closeInstallGuideModal;
+        }
+      }
+
+      function openInstallGuideModal() {
+        let ov = document.getElementById("installGuideOverlay");
+        if (!ov) {
+          ov = document.createElement("div");
+          ov.id = "installGuideOverlay";
+          ov.innerHTML = "<div class=\"install-modal-card\" id=\"installGuideContent\" role=\"dialog\" aria-modal=\"true\"></div>";
+          ov.addEventListener("click", (e) => {
+            if (e.target === ov) closeInstallGuideModal();
+          });
+          document.body.appendChild(ov);
+        }
+        renderInstallModalStep("select");
+        ov.classList.add("open");
+      }
+
+      function appendInstallHeaderButton(container) {
+        if (!container || isRunningStandalone()) return;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn-install-header";
+        btn.innerHTML = "<svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><polyline points=\"7 10 12 15 17 10\"/><line x1=\"12\" y1=\"15\" x2=\"12\" y2=\"3\"/></svg><span>앱 설치</span>";
+        btn.addEventListener("click", openInstallGuideModal);
+        container.appendChild(btn);
+      }
+
       function render() {
         const topTitle = document.getElementById('topTitle');
         const headerActions = document.getElementById('headerActions');
@@ -1705,6 +1958,7 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
         const tabMap = { browse: 'tabBrowse', result: 'tabBrowse', notebook: 'tabNotebook', detail: 'tabNotebook', settings: 'tabSettings' };
         document.querySelectorAll('.tab-btn').forEach((btn) => btn.classList.toggle('active', btn.id === tabMap[state.view]));
         headerActions.innerHTML = '';
+        appendInstallHeaderButton(headerActions);
 
         const isSheetView = state.view === 'notebook' || state.view === 'detail' || state.view === 'settings';
         if (isSheetView) {

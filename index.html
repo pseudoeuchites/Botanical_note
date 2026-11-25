@@ -1053,7 +1053,7 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
       }
 
       async function identifyPlantWithGemini(apiKey, base64Data, mimeType) {
-        const models = ["gemini-3.8-flash", "gemini-2.5-flash-lite"];
+        const models = ["gemini-3.8-flash", "gemini-3.8-flash-lite", "gemini-3.1-flash-lite-preview"];
         const loadingText = document.getElementById("loadingText");
         const promptText = [
           "당신은 식물학 백과사전 전문가입니다. 첨부된 사진 속 식물을 판별하고 아래 JSON 스키마로만 응답하세요.",

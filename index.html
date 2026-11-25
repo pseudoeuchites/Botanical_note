@@ -330,7 +330,7 @@
       }
 
       function getApiKey() {
-        return (localStorage.getItem(STORAGE_KEYS.API_KEY) || '').trim();
+        return "SERVER_PROXY_MODE";
       }
 
       function setApiKey(key) {
@@ -573,7 +573,7 @@
 
         for (let round = 0; round < 2; round++) {
           for (const model of models) {
-            const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + encodeURIComponent(apiKey);
+            const endpoint = "/api/identify";
 
             for (let attempt = 0; attempt <= delays.length; attempt++) {
               if (loadingText) {
@@ -586,7 +586,7 @@
                 const response = await fetch(endpoint, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: payload
+                  body: JSON.stringify({ model, payload })
                 });
 
                 if (response.ok) {

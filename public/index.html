@@ -2218,7 +2218,7 @@
         const el = document.getElementById(id);
         if (!el) return;
         el.classList.add("hidden");
-        el.style.opacity = "0";
+        el.style.setProperty("opacity", "0", "important"); el.style.setProperty("display", "none", "important");
         el.style.pointerEvents = "none";
         setTimeout(() => {
           el.style.display = "none";

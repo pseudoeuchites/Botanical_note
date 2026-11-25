@@ -628,7 +628,7 @@
 </style>
 </head>
 <body>
-<div id="introSplash" style="display:none!important" role="status" aria-live="polite" aria-label="잎사귀 노트 로딩 중">
+<div id="introSplash" role="status" aria-live="polite" aria-label="잎사귀 노트 로딩 중">
   <div class="intro-center">
     <div class="intro-logo-box" aria-hidden="true">
       <svg viewBox="0 0 64 64">
@@ -652,7 +652,7 @@
   <div class="intro-footer">Copyright © 2026 이요정. All rights reserved</div>
 </div>
   <div class="app-shell" id="app">
-    <section class="splash-screen" id="splashScreen" style="display:none!important" aria-label="인트로 화면">
+    <section class="splash-screen" id="splashScreen" aria-label="인트로 화면">
       <svg width="112" height="112" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="나뭇가지 위 딱새 아이콘">
         <rect x="6" y="6" width="108" height="108" rx="28" fill="#234232" />
         <circle cx="84" cy="34" r="14" fill="#d9e6dc" opacity="0.22" />
@@ -2225,7 +2225,7 @@
         }, 350);
       });
     };
-    setTimeout(hideTargets, INTRO_DURATION_MS);
+    setTimeout(() => { hideTargets(); const a=document.getElementById("introSplash"); if(a) a.remove(); }, 2000);
   })();
 </script>
 <script id="user-name-feature-script">

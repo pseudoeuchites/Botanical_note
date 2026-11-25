@@ -33,7 +33,7 @@ function localIdentifyApiPlugin() {
         req.on('end', async () => {
           try {
             const parsedBody = JSON.parse(rawBody || '{}')
-            const model = parsedBody.model || 'gemini-3.5-flash-lite'
+            const model = parsedBody.model || 'gemini-2.5-flash'
             const payload = parsedBody.payload
             const requestBody = typeof payload === 'string' ? payload : JSON.stringify(payload)
 

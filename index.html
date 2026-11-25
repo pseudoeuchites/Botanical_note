@@ -736,8 +736,8 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
     <div class="modal-box" id="modalBox"></div>
   </div>
 
-  <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" />
-  <input type="file" id="albumInput" accept="image/*" style="display:none" />
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0.01;" />
+  <input type="file" id="albumInput" accept="image/*" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0.01;" />
 
   <script>
     (() => {
@@ -1015,39 +1015,39 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
       function readImageFile(file) {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
+          reader.onerror = () => reject(new Error("파일 읽기 실패"));
           reader.onload = () => {
             const img = new Image();
+            img.onerror = () => reject(new Error("이미지 디코딩 실패"));
             img.onload = () => {
-              const maxSide = 768;
-              let { width, height } = img;
-              if (width > maxSide || height > maxSide) {
-                if (width > height) {
-                  height = Math.round((height * maxSide) / width);
-                  width = maxSide;
-                } else {
-                  width = Math.round((width * maxSide) / height);
-                  height = maxSide;
+              try {
+                const maxSide = 1280;
+                let w = img.naturalWidth || img.width;
+                let h = img.naturalHeight || img.height;
+                if (w > maxSide || h > maxSide) {
+                  if (w >= h) { h = Math.round((h * maxSide) / w); w = maxSide; }
+                  else { w = Math.round((w * maxSide) / h); h = maxSide; }
                 }
+                const canvas = document.createElement("canvas");
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, w, h);
+                const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+                const base64 = dataUrl.split(",")[1] || "";
+                resolve({ dataUrl, base64, mimeType: "image/jpeg" });
+              } catch (err) {
+                reject(err);
               }
-              const canvas = document.createElement('canvas');
-              canvas.width = width;
-              canvas.height = height;
-              const ctx = canvas.getContext('2d');
-              ctx.drawImage(img, 0, 0, width, height);
-              const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
-              const base64 = dataUrl.split(',')[1] || '';
-              resolve({ dataUrl, base64, mimeType: 'image/jpeg' });
             };
-            img.onerror = reject;
             img.src = reader.result;
           };
-          reader.onerror = reject;
           reader.readAsDataURL(file);
         });
       }
 
       async function identifyPlantWithGemini(apiKey, base64Data, mimeType) {
-        const models = ["gemini-3.5-flash-lite", "gemini-2.5-flash"];
+        const models = ["gemini-2.5-flash", "gemini-2.5-flash"];
         const loadingText = document.getElementById("loadingText");
         const promptText = [
           "당신은 식물학 백과사전 전문가입니다. 첨부된 사진 속 식물을 판별하고 아래 JSON 스키마로만 응답하세요.",
@@ -2215,59 +2215,6 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
   })();
 </script>
 
-<script id="sheet-drawer-script">
-  function closeSheetNow() {
-    const overlay = document.getElementById("bottomSheetOverlay");
-    if (overlay) overlay.classList.remove("open");
-    const tabBrowse = document.getElementById("tabBrowse");
-    if (tabBrowse) tabBrowse.click();
-  }
-
-  function ensureBottomSheetDom() {
-    let overlay = document.getElementById("bottomSheetOverlay");
-    if (!overlay) {
-      overlay = document.createElement("div");
-      overlay.id = "bottomSheetOverlay";
-      overlay.innerHTML =
-        "<div id=\"bottomSheetCard\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"bottomSheetTitle\">" +
-          "<div id=\"bottomSheetHeader\">" +
-            "<h2 id=\"bottomSheetTitle\"></h2>" +
-            "<div id=\"bottomSheetHeaderRight\">" +
-              "<div id=\"bottomSheetHeaderActions\"></div>" +
-              "<button type=\"button\" id=\"bottomSheetCloseBtn\" aria-label=\"닫기\">×</button>" +
-            "</div>" +
-          "</div>" +
-          "<div id=\"bottomSheetBody\"></div>" +
-        "</div>";
-      const parent = document.body || document.documentElement;
-      if (parent) parent.appendChild(overlay);
-
-      overlay.addEventListener("click", (e) => {
-        if (e.target === overlay && typeof closeSheetNow === "function") closeSheetNow();
-      });
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && overlay.classList.contains("open") && typeof closeSheetNow === "function") {
-          closeSheetNow();
-        }
-      });
-    }
-
-    const closeBtn = document.getElementById("bottomSheetCloseBtn");
-    if (closeBtn) {
-      closeBtn.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (typeof closeSheetNow === "function") closeSheetNow();
-      };
-    }
-    return overlay;
-  }
-
-  function closeBottomSheet() {
-    const overlay = document.getElementById("bottomSheetOverlay");
-    if (overlay) overlay.classList.remove("open");
-  }
-</script>
 
 <script id="intro-splash-duration-script">
   (function () {
@@ -2381,6 +2328,23 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
     });
 
   })();
+</script>
+<script id="iosHardBootGuard">
+(function(){
+  function forceHideIntro(){
+    ["introSplash","splashScreen"].forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.classList.add("hidden");
+      el.style.setProperty("opacity","0","important");
+      el.style.setProperty("visibility","hidden","important");
+      el.style.setProperty("pointer-events","none","important");
+      el.style.setProperty("display","none","important");
+    });
+  }
+  setTimeout(forceHideIntro, 2200);
+  setTimeout(forceHideIntro, 3500);
+})();
 </script>
 </body>
 </html>

@@ -1628,6 +1628,11 @@
         }
       }
 
+      window.__setBotanicalUserName = function(nextName) {
+        const trimmed = (nextName || "").trim();
+        state.settings = { ...(state.settings || {}), userName: trimmed, namePromptShown: true };
+        render();
+      };
       function render() {
         const topTitle = document.getElementById('topTitle');
         const headerActions = document.getElementById('headerActions');
@@ -2242,9 +2247,19 @@
       }
     }
 
+    function syncAppSettingsState(next) {
+      try {
+        if (typeof state === "object" && state) {
+          state.settings = { ...(state.settings || {}), ...next };
+        }
+      } catch (_) {}
+    }
+
     function writeUserName(name) {
       const next = { ...readSettings(), userName: (name || "").trim(), namePromptShown: true };
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+      syncAppSettingsState(next);
+      if (typeof window.__setBotanicalUserName === "function") window.__setBotanicalUserName(next.userName);
       const titleEl = document.getElementById("bottomSheetTitle");
       if (titleEl && (titleEl.textContent || "").includes("잎사귀 노트")) {
         titleEl.textContent = next.userName ? `${next.userName}의 잎사귀 노트` : "잎사귀 노트";
@@ -2253,6 +2268,7 @@
 
     function syncNotebookTitle() {
       const cur = readSettings();
+      syncAppSettingsState(cur);
       const titleEl = document.getElementById("bottomSheetTitle");
       if (!titleEl) return;
       const txt = titleEl.textContent || "";

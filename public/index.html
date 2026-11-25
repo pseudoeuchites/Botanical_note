@@ -2317,7 +2317,7 @@
     window.addEventListener("load", () => {
       const cur = readSettings();
       if (!cur.namePromptShown && !cur.userName) {
-        setTimeout(openNameModal, 3150);
+        /* disabled openNameModal for mobile test */
       }
     });
 

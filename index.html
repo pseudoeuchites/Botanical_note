@@ -1752,8 +1752,7 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
         closeBottomSheet();
         if (state.view === 'browse') {
         if (typeof closeBottomSheet === "function") closeBottomSheet();
-        const _ov = document.getElementById("bottomSheetOverlay");
-        if (_ov) _ov.classList.remove("open");
+        
           topTitle.textContent = '찾아보기';
           renderBrowseView(mainContent);
         } else if (state.view === 'result') {
@@ -2064,8 +2063,7 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
       document.getElementById('albumInput').addEventListener('change', handleFileChange);
       document.getElementById('tabBrowse').addEventListener('click', () => {
         if (typeof closeBottomSheet === "function") closeBottomSheet();
-        const ov = document.getElementById("bottomSheetOverlay");
-        if (ov) ov.classList.remove("open");
+        
         state.deleteMode = false;
         state.selectedIds.clear();
         state.view = 'browse';

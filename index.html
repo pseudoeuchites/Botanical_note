@@ -630,6 +630,12 @@
 #bottomSheetOverlay:not(.open) { display: none !important; pointer-events: none !important; }
 button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 </style>
+<style id="staticPreviewPersistStyle">
+.preview-frame, #previewFrame {
+  background-color: #f4f7f2 !important;
+  border-color: #d6e2d3 !important;
+}
+</style>
 </head>
 <body>
 <div id="introSplash" role="status" aria-live="polite" aria-label="잎사귀 노트 로딩 중">
@@ -736,8 +742,8 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
     <div class="modal-box" id="modalBox"></div>
   </div>
 
-  <input type="file" id="cameraInput" accept="image/*" capture="environment" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0.01;" />
-  <input type="file" id="albumInput" accept="image/*" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0.01;" />
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" style="position:fixed;left:-9999px;opacity:0;width:1px;height:1px;" />
+  <input type="file" id="albumInput" accept="image/*" style="position:fixed;left:-9999px;opacity:0;width:1px;height:1px;" />
 
   <script>
     (() => {
@@ -1047,7 +1053,7 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
       }
 
       async function identifyPlantWithGemini(apiKey, base64Data, mimeType) {
-        const models = ["gemini-2.5-flash", "gemini-2.5-flash"];
+        const models = ["gemini-2.5-flash"];
         const loadingText = document.getElementById("loadingText");
         const promptText = [
           "당신은 식물학 백과사전 전문가입니다. 첨부된 사진 속 식물을 판별하고 아래 JSON 스키마로만 응답하세요.",
@@ -2156,64 +2162,9 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
   })();
 </script>
 
-<script id="register-and-comment-script">
-  (function () {
-    function fixCommentAndRegister() {
-      document.querySelectorAll(".comment-form .input-field, .comment-form input, .comment-form textarea").forEach((el) => {
-        el.style.setProperty("background-color", "#F4F5FD", "important");
-        el.style.setProperty("background", "#F4F5FD", "important");
-        el.style.setProperty("color", "#1D2242", "important");
-      });
-
-      document.querySelectorAll(".comment-form button").forEach((btn) => {
-        btn.classList.add("reg-horizontal-btn");
-        btn.style.setProperty("writing-mode", "horizontal-tb", "important");
-        btn.style.setProperty("white-space", "nowrap", "important");
-        btn.style.setProperty("word-break", "keep-all", "important");
-        btn.style.setProperty("flex-shrink", "0", "important");
-        btn.style.setProperty("width", "auto", "important");
-        btn.style.setProperty("min-width", "56px", "important");
-      });
-    }
-
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", fixCommentAndRegister);
-    } else {
-      fixCommentAndRegister();
-    }
-    setTimeout(fixCommentAndRegister, 150);
-    setTimeout(fixCommentAndRegister, 600);
-    new MutationObserver(fixCommentAndRegister).observe(document.documentElement, { childList: true, subtree: true });
-  })();
-</script>
 
 
 
-<script id="preview-frame-persist-script">
-  (function () {
-    function syncPreviewFrameColor() {
-      document.querySelectorAll(".preview-frame, .photo-empty-box-fill").forEach((el) => {
-        el.style.setProperty("background-color", "#F4F6FD", "important");
-        el.style.setProperty("background", "#F4F6FD", "important");
-        el.style.setProperty("border-color", "#DFE4FA", "important");
-      });
-    }
-
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", syncPreviewFrameColor);
-    } else {
-      syncPreviewFrameColor();
-    }
-    setTimeout(syncPreviewFrameColor, 100);
-    setTimeout(syncPreviewFrameColor, 400);
-    new MutationObserver(syncPreviewFrameColor).observe(document.documentElement, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ["style", "class"]
-    });
-  })();
-</script>
 
 
 <script id="intro-splash-duration-script">

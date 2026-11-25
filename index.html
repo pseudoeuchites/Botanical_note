@@ -1651,7 +1651,7 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
           }
           state.analysisResult = { ...plantInfo, dateText, locationText };
           state.referencePhotos = refPhotos;
-          state.view = 'browse';
+          state.view = 'result';
           render();
         } catch (err) {
           const remainMs = Math.max(0, minHoldUntil - Date.now());
@@ -1709,7 +1709,7 @@ button, .btn-primary, .btn-secondary, .btn-ghost, .tab-btn { touch-action: manip
         if (overlay) overlay.classList.remove("open");
         const body = document.getElementById("bottomSheetBody");
         if (body) body.innerHTML = "";
-        if (typeof state === "object" && state && state.view !== "browse") {
+        if (typeof state === "object" && state && state.view !== "browse" && state.view !== "result") {
           state.deleteMode = false;
           if (state.selectedIds && typeof state.selectedIds.clear === "function") {
             state.selectedIds.clear();
